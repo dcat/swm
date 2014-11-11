@@ -423,23 +423,25 @@ int main (void) {
 			if (!win || win == scr->root)
 				break;
 			values[0] = XCB_STACK_MODE_ABOVE;
-			xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_STACK_MODE,
-					values);
-			geom = xcb_get_geometry_reply(conn, xcb_get_geometry(conn,
-				win), NULL);
+			xcb_configure_window(conn, win,
+					XCB_CONFIG_WINDOW_STACK_MODE, values);
+			geom = xcb_get_geometry_reply(conn,
+					xcb_get_geometry(conn, win), NULL);
 			if (1 == e->detail) {
 				values[2] = 1; 
 				xcb_warp_pointer(conn, XCB_NONE, win,
 					0, 0, 0, 0, 1, 1);
 			} else {
 				values[2] = 3; 
-				xcb_warp_pointer(conn, XCB_NONE, win, 0, 0, 0, 0,
-					geom->width, geom->height);
+				xcb_warp_pointer(conn, XCB_NONE, win, 0, 0, 0,
+						0, geom->width, geom->height);
 			}
 			xcb_grab_pointer(conn, 0, scr->root,
 				XCB_EVENT_MASK_BUTTON_RELEASE
-				| XCB_EVENT_MASK_BUTTON_MOTION | XCB_EVENT_MASK_POINTER_MOTION_HINT, 
-				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, scr->root, XCB_NONE, XCB_CURRENT_TIME);
+				| XCB_EVENT_MASK_BUTTON_MOTION
+				| XCB_EVENT_MASK_POINTER_MOTION_HINT,
+				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+				scr->root, XCB_NONE, XCB_CURRENT_TIME);
 			xcb_flush(conn);
 		} break;
 
@@ -450,25 +452,30 @@ int main (void) {
 					xcb_query_pointer(conn, scr->root), 0);
 			if (values[2] == 1) {
 				geom = xcb_get_geometry_reply(conn,
-						xcb_get_geometry(conn, win), NULL);
+					xcb_get_geometry(conn, win), NULL);
 				if (!geom) {
 					break;
 				}
 				values[0] = (pointer->root_x + geom->width
-					> scr->width_in_pixels)
+					> scr->width_in_pixels
+					- (BORDERWIDTH*2))
 					? scr->width_in_pixels - geom->width
+					- (BORDERWIDTH*2)
 					: pointer->root_x;
 				values[1] = (pointer->root_y + geom->height
-						> scr->height_in_pixels)
-					? (scr->height_in_pixels - geom->height)
+					> scr->height_in_pixels
+					- (BORDERWIDTH*2))
+					? (scr->height_in_pixels - geom->height
+					- (BORDERWIDTH*2))
 					: pointer->root_y;
-				xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_X 
-						| XCB_CONFIG_WINDOW_Y, values);
+				xcb_configure_window(conn, win,
+					XCB_CONFIG_WINDOW_X
+					| XCB_CONFIG_WINDOW_Y, values);
 				xcb_flush(conn);
 			} else if (values[2] == 3) {
 				focus(win, RESIZE);
 				geom = xcb_get_geometry_reply(conn,
-						xcb_get_geometry(conn, win), NULL);
+					xcb_get_geometry(conn, win), NULL);
 				values[0] = pointer->root_x - geom->x;
 				values[1] = pointer->root_y - geom->y;
 				xcb_configure_window(conn, win,
