@@ -143,7 +143,7 @@ nextwin (void) {
 		return;
 	c = xcb_query_tree_children(r);
 
-	for (register uint8_t i=0; i < r->children_len; i++) {
+	for (unsigned int i=0; i < r->children_len; i++) {
 		ac = xcb_get_window_attributes(conn, c[i]);
 		ar = xcb_get_window_attributes_reply(conn, ac, NULL);
 
@@ -383,7 +383,7 @@ int main (void) {
 
 			xcb_keysym_t keysym = xcb_get_keysym(e->detail);
 
-			for (register uint8_t i=0; i < LENGTH(keys); i++) {
+			for (unsigned int i=0; i < LENGTH(keys); i++) {
 				if (keys[i].keysym == keysym
 				&& CLEANMASK(keys[i].mod) == CLEANMASK(e->state)
 				&& keys[i].mfunc) {
