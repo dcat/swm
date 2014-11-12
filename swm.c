@@ -467,8 +467,7 @@ int main (void) {
 					xcb_get_geometry(conn, win), NULL);
 			if (1 == e->detail) {
 				values[2] = 1; 
-				xcb_warp_pointer(conn, XCB_NONE, win,
-					0, 0, 0, 0, 1, 1);
+				center_pointer(win);
 			} else {
 				values[2] = 3; 
 				xcb_warp_pointer(conn, XCB_NONE, win, 0, 0, 0,
@@ -494,18 +493,25 @@ int main (void) {
 				if (!geom) {
 					break;
 				}
-				values[0] = (pointer->root_x + geom->width
+
+				values[0] = (pointer->root_x + geom->width / 2
 					> scr->width_in_pixels
 					- (BORDERWIDTH*2))
 					? scr->width_in_pixels - geom->width
 					- (BORDERWIDTH*2)
-					: pointer->root_x;
-				values[1] = (pointer->root_y + geom->height
+					: pointer->root_x - geom->width / 2;
+				values[1] = (pointer->root_y + geom->height / 2
 					> scr->height_in_pixels
 					- (BORDERWIDTH*2))
 					? (scr->height_in_pixels - geom->height
 					- (BORDERWIDTH*2))
-					: pointer->root_y;
+					: pointer->root_y - geom->height / 2;
+
+				if (pointer->root_x < geom->width/2)
+					values[0] = 0;
+				if (pointer->root_y < geom->height/2)
+					values[1] = 0;
+
 				xcb_configure_window(conn, win,
 					XCB_CONFIG_WINDOW_X
 					| XCB_CONFIG_WINDOW_Y, values);
