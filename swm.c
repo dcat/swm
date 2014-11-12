@@ -205,6 +205,7 @@ focus (xcb_window_t win, int mode) {
 		{w + b - o, 0, o, h + b * 2},
 		{w + b,     0, o, h + b * 2},
 		{0, h + b - o, w + b * 2, o},
+		{0, h + b,     w + b * 2, o}, 
 		{1, 1, 1, 1}
 	};
 
