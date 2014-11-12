@@ -297,6 +297,7 @@ move (int8_t x, int8_t y) {
 static void
 resize (int8_t x, int8_t y) {
 	uint32_t values[2];
+	int real;
 	xcb_get_geometry_reply_t *geom;
 	xcb_drawable_t win = focuswin;
 
@@ -307,9 +308,24 @@ resize (int8_t x, int8_t y) {
 	values[0] = x ? geom->width + x : geom->width;
 	values[1] = y ? geom->height + y : geom->height;
 
-	xcb_configure_window(conn, win,
-			XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT,
-			values);
+	if (x)
+	{
+		real = geom->width + (BORDERWIDTH * 2);
+		if (geom->x + real + x > scr->width_in_pixels)
+			values[0] = scr->width_in_pixels - geom->x -
+				(BORDERWIDTH * 2);
+	}
+
+	if (y)
+	{
+		real = geom->height + (BORDERWIDTH *2);
+		if (geom->y + real + y > scr->height_in_pixels)
+			values[1] = scr->height_in_pixels - geom->y -
+				(BORDERWIDTH * 2);
+	}
+
+	xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_WIDTH
+		| XCB_CONFIG_WINDOW_HEIGHT, values);
 
 	focus(win, ACTIVE);
 	center_pointer(win);
@@ -361,7 +377,7 @@ int main (void) {
 	xcb_grab_button(conn, 0, scr->root, XCB_EVENT_MASK_BUTTON_PRESS | 
 		XCB_EVENT_MASK_BUTTON_RELEASE, XCB_GRAB_MODE_ASYNC, 
 		XCB_GRAB_MODE_ASYNC, scr->root, XCB_NONE, 1, MOD);
-	
+
 	xcb_grab_button(conn, 0, scr->root, XCB_EVENT_MASK_BUTTON_PRESS | 
 		XCB_EVENT_MASK_BUTTON_RELEASE, XCB_GRAB_MODE_ASYNC, 
 		XCB_GRAB_MODE_ASYNC, scr->root, XCB_NONE, 3, MOD);
