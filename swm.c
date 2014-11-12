@@ -254,6 +254,7 @@ setup_win (xcb_window_t win) {
 static void
 move (int8_t x, int8_t y) {
 	uint32_t values[2];
+	int real;
 	xcb_window_t win = focuswin;
 	xcb_get_geometry_reply_t *geom;
 
@@ -261,9 +262,29 @@ move (int8_t x, int8_t y) {
 		return;
 
 	geom = xcb_get_geometry_reply(conn, xcb_get_geometry(conn, win), NULL);
+	if (!geom)
+		return;
 
 	values[0] = x ? geom->x + x : geom->x;
 	values[1] = y ? geom->y + y : geom->y;
+
+	if (x)
+	{
+		real = geom->width + (BORDERWIDTH * 2);
+		if (geom->x + x < 1)
+			values[0] = 0;
+		if (geom->x + x > scr->width_in_pixels - real)
+			values[0] = scr->width_in_pixels - real;
+	}
+
+	if (y)
+	{
+		real = geom->height + (BORDERWIDTH * 2);
+		if (geom->y + y < 1)
+			values[1] = 0;
+		if (geom->y + y > scr->height_in_pixels - real)
+			values[1] = scr->height_in_pixels - real;
+	}
 
 	xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_X
 			| XCB_CONFIG_WINDOW_Y, values);
