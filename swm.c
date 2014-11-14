@@ -31,11 +31,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
-
-#ifdef SHARED_MEMORY
-	#define _XOPEN_SOURCE
-	#include <sys/shm.h>
-#endif
+#include <sys/shm.h>
 
 struct swm_keys_t {
 	unsigned int mod;
@@ -54,7 +50,7 @@ enum SWM_STATE {
 /* global variables */
 static xcb_connection_t		*conn;
 static xcb_screen_t		*scr;
-static xcb_drawable_t		focuswin;
+static xcb_window_t		*focuswin;
 
 
 /* proto */
@@ -151,16 +147,14 @@ nextwin (void) {
 		ac = xcb_get_window_attributes(conn, c[i]);
 		ar = xcb_get_window_attributes_reply(conn, ac, NULL);
 
-		if (ar)
-			if (ar->map_state == XCB_MAP_STATE_VIEWABLE) {
-				if (ar->override_redirect) break;
-				if (r->children_len == 1) {
-					t = c[i];
-					break;
-				}
-				if (c[i] == focuswin) break;
+		if (ar && ar->map_state == XCB_MAP_STATE_VIEWABLE) {
+			if (ar->override_redirect || c[i] == (*focuswin))
+				break;
+			else {
 				t = c[i];
+				break;
 			}
+		}
 	}
 
 	if (t) {
@@ -233,9 +227,9 @@ focus (xcb_window_t win, int mode) {
 	if (mode) {
 		xcb_set_input_focus(conn, XCB_INPUT_FOCUS_POINTER_ROOT,
 			win, XCB_CURRENT_TIME);
-		if (win != focuswin) {
-			focus(focuswin, INACTIVE);
-			focuswin = win;
+		if (win != (*focuswin)) {
+			focus((*focuswin), INACTIVE);
+			(*focuswin) = win;
 		}
 	}
 
@@ -260,7 +254,7 @@ static void
 move (int8_t x, int8_t y) {
 	uint32_t values[2];
 	int real;
-	xcb_window_t win = focuswin;
+	xcb_window_t win = (*focuswin);
 	xcb_get_geometry_reply_t *geom;
 
 	if (!win || win == scr->root)
@@ -304,7 +298,7 @@ resize (int8_t x, int8_t y) {
 	uint32_t values[2];
 	int real;
 	xcb_get_geometry_reply_t *geom;
-	xcb_drawable_t win = focuswin;
+	xcb_drawable_t win = (*focuswin);
 
 	if (!win || win == scr->root)
 		return;
@@ -340,9 +334,9 @@ resize (int8_t x, int8_t y) {
 
 static void
 killwin (void) {
-	if (!focuswin || focuswin == scr->root)
+	if (!(*focuswin) || (*focuswin) == scr->root)
 		return;
-	xcb_kill_client(conn, focuswin);
+	xcb_kill_client(conn, (*focuswin));
 	nextwin();
 }
 
@@ -376,19 +370,17 @@ int main (void) {
 
 	scr = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
 
-#ifdef SHARED_MEMORY
 	key_t key = 0x0DEADCA7;
 	int shmid;
 
 	if ((shmid = shmget(key, sizeof(xcb_window_t), IPC_CREAT | 0666)) < 0)
 		warnx("shmget error");
 
-	if ((focuswin = shmat(shmid, NULL, 0)) == (char *) -1)
+	if ((focuswin = shmat(shmid, NULL, 0)) == (xcb_window_t *) -1)
 		warnx("shmat error");
 
-#endif
 
-	focuswin = root = scr->root;
+	(*focuswin) = root = scr->root;
 
 	grab_keys();
 
@@ -556,4 +548,3 @@ int main (void) {
 	free(ev);
 	}
 }
-
