@@ -23,6 +23,8 @@
 #define LENGTH(x)	(sizeof(x)/sizeof(*x))
 #define CLEANMASK(m)	((m & ~0x80))
 
+#define _XOPEN_SOURCE	/* for shm */
+
 #include <err.h>
 #include <stdio.h>
 #include <signal.h>
@@ -61,6 +63,8 @@ static void killwin		(void);
 static void nextwin		(void);
 static void focus		(xcb_window_t, int);
 static void center_pointer	(xcb_window_t);
+static void discover		(void);
+static void setup_win		(xcb_window_t);
 
 
 #include "config.h"
@@ -116,6 +120,31 @@ xcb_get_keycode (xcb_keysym_t keysym) {
  * Simplify, and quality check these functions, before moving them into the
  * clean section.
  */
+
+static void
+discover (void) {
+	xcb_query_tree_reply_t      *r;
+	xcb_window_t                *c;
+
+	r = xcb_query_tree_reply(conn, xcb_query_tree(conn, scr->root), NULL);
+
+	if (r == NULL) {
+		warnx("cannot get a list of windows");
+		return;
+	}
+
+	c = xcb_query_tree_children(r);
+
+	/*
+	 * iterate through all the childrens and register them to the specified
+	 * events
+	 */
+	for (unsigned int i = 0; i < r->children_len; i++) {
+		setup_win(c[i]);
+		focus(c[i], INACTIVE);
+	}
+	nextwin();
+}
 
 static void
 center_pointer (xcb_window_t win) {
@@ -397,6 +426,8 @@ int main (void) {
 	values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 	xcb_change_window_attributes_checked(conn, root, mask, values);
 	xcb_flush(conn);
+
+	discover();
 
 	/* loop */
 	for (;;) {
