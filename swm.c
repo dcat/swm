@@ -285,10 +285,10 @@ focus (xcb_window_t win, int mode) {
 
 static void
 setup_win (xcb_window_t win) {
-	uint32_t mask = 0, values[3];
+	uint32_t mask = 0, values[2];
 
-	values[0] = XCB_EVENT_MASK_ENTER_WINDOW;
-	values[1] = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+	values[0] = XCB_EVENT_MASK_ENTER_WINDOW |
+		XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 	xcb_change_window_attributes_checked(conn, win, XCB_CW_EVENT_MASK,
 			values);
 
@@ -308,7 +308,6 @@ setup_win (xcb_window_t win) {
 
 	/* border width */
 	values[0] = BORDERWIDTH;
-	values[1] = XCB_NONE;
 	xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_BORDER_WIDTH, values);
 }
 
