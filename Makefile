@@ -1,8 +1,9 @@
-CFLAGS	+= -std=c99 -g # -Os
+CFLAGS	+= -std=c99 -g -pedantic -Wall -Os
 LDFLAGS	+= -lxcb -lxcb-keysyms # -static
 SRC	=  swm.c
 OBJ	=  ${SRC:.c=.o}
 RM	?= /bin/rm
+PREFIX	?= /usr
 
 all: swm
 
@@ -13,14 +14,14 @@ all: swm
 ${OBJ}: config.h
 
 swm: ${OBJ}
-	@echo CC -o $@
+	@echo LD $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 
 clean:
 	${RM} swm ${OBJ}
 
 install:
-	install -m 755 swm ${PREFIX}/bin/swm
+	install -m 755 swm ${DESTDIR}${PREFIX}/bin/swm
 
 uninstall:
-	rm ${PREFIX}/bin/swm
+	rm ${DESTDIR}${PREFIX}/bin/swm
