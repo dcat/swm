@@ -32,6 +32,10 @@
 #include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
 
+#ifdef SHARED_MEMORY
+	#define _XOPEN_SOURCE
+	#include <sys/shm.h>
+#endif
 
 struct swm_keys_t {
 	unsigned int mod;
@@ -371,6 +375,19 @@ int main (void) {
 		errx(1, "error connecting to xcb");
 
 	scr = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
+
+#ifdef SHARED_MEMORY
+	key_t key = 0x0DEADCA7;
+	int shmid;
+
+	if ((shmid = shmget(key, sizeof(xcb_window_t), IPC_CREAT | 0666)) < 0)
+		warnx("shmget error");
+
+	if ((focuswin = shmat(shmid, NULL, 0)) == (char *) -1)
+		warnx("shmat error");
+
+#endif
+
 	focuswin = root = scr->root;
 
 	grab_keys();
