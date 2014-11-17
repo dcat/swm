@@ -38,7 +38,7 @@
 struct swm_keys_t {
 	unsigned int mod;
 	xcb_keysym_t keysym;
-	void (*mfunc)(int8_t, int8_t);
+	void (*mfunc)(int, int);
 	void (*func)();
 	int x,y;
 };
@@ -56,8 +56,8 @@ static xcb_window_t		*focuswin;
 
 
 /* proto */
-static void move		(int8_t, int8_t);
-static void resize		(int8_t, int8_t);
+static void move		(int, int);
+static void resize		(int, int);
 static void init		(void);
 static void cleanup		(void);
 static void killwin		(void);
@@ -316,7 +316,7 @@ setup_win (xcb_window_t win) {
 }
 
 static void
-move (int8_t x, int8_t y) {
+move (int x, int y) {
 	uint32_t values[2];
 	int real;
 	xcb_window_t win = (*focuswin);
@@ -359,7 +359,7 @@ move (int8_t x, int8_t y) {
 }
 
 static void
-resize (int8_t x, int8_t y) {
+resize (int x, int y) {
 	uint32_t values[2];
 	int real;
 	xcb_get_geometry_reply_t *geom;
