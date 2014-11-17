@@ -125,6 +125,8 @@ xcb_get_keycode (xcb_keysym_t keysym) {
 
 static void
 init (void) {
+	uint32_t mask = 0, values[2];
+
 	if (xcb_connection_has_error(conn = xcb_connect(NULL, NULL)))
 		errx(1, "error connecting to xcb");
 
@@ -143,6 +145,19 @@ init (void) {
 	(*focuswin) = scr->root;
 
 	grab_keys();
+
+	xcb_grab_button(conn, 0, scr->root, XCB_EVENT_MASK_BUTTON_PRESS |
+			XCB_EVENT_MASK_BUTTON_RELEASE, XCB_GRAB_MODE_ASYNC,
+			XCB_GRAB_MODE_ASYNC, scr->root, XCB_NONE, 1, MOD);
+
+	xcb_grab_button(conn, 0, scr->root, XCB_EVENT_MASK_BUTTON_PRESS |
+			XCB_EVENT_MASK_BUTTON_RELEASE, XCB_GRAB_MODE_ASYNC,
+			XCB_GRAB_MODE_ASYNC, scr->root, XCB_NONE, 3, MOD);
+
+	mask = XCB_CW_EVENT_MASK;
+	values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+	xcb_change_window_attributes_checked(conn, scr->root, mask, values);
+	xcb_flush(conn);
 }
 
 static void
@@ -285,30 +300,19 @@ focus (xcb_window_t win, int mode) {
 
 static void
 setup_win (xcb_window_t win) {
-	uint32_t mask = 0, values[2];
+	uint32_t mask = 0, values[3];
 
-	values[0] = XCB_EVENT_MASK_ENTER_WINDOW |
-		XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
+	values[0] = XCB_EVENT_MASK_ENTER_WINDOW;
+	values[1] = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
 	xcb_change_window_attributes_checked(conn, win, XCB_CW_EVENT_MASK,
 			values);
-
-	xcb_grab_button(conn, 0, scr->root, XCB_EVENT_MASK_BUTTON_PRESS |
-			XCB_EVENT_MASK_BUTTON_RELEASE, XCB_GRAB_MODE_ASYNC,
-			XCB_GRAB_MODE_ASYNC, scr->root, XCB_NONE, 1, MOD);
-
-	xcb_grab_button(conn, 0, scr->root, XCB_EVENT_MASK_BUTTON_PRESS |
-			XCB_EVENT_MASK_BUTTON_RELEASE, XCB_GRAB_MODE_ASYNC,
-			XCB_GRAB_MODE_ASYNC, scr->root, XCB_NONE, 3, MOD);
-
-
-	mask = XCB_CW_EVENT_MASK;
-	xcb_change_window_attributes_checked(conn, scr->root, mask, values);
-	xcb_flush(conn);
 
 
 	/* border width */
 	values[0] = BORDERWIDTH;
-	xcb_configure_window(conn, win, XCB_CONFIG_WINDOW_BORDER_WIDTH, values);
+	values[1] = XCB_NONE;
+	mask = XCB_CONFIG_WINDOW_BORDER_WIDTH;
+	xcb_configure_window(conn, win, mask, values);
 }
 
 static void
