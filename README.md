@@ -20,3 +20,7 @@ $ sudo make install
 - readability
 - debug
 
+
+##Screenshot
+
+![swm](http://pub.iotek.org/p/260H6r1.png)
