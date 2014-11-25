@@ -1,5 +1,5 @@
 CFLAGS	+= -std=c99 -g -pedantic -Wall -Os
-LDFLAGS	+= -lxcb -lxcb-keysyms # -static
+LDFLAGS	+= -lxcb -lxcb-keysyms -lxcb-icccm # -static
 SRC	=  swm.c
 OBJ	=  ${SRC:.c=.o}
 RM	?= /bin/rm
