@@ -32,8 +32,10 @@
 #include <unistd.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
+#include <xcb/xcb_icccm.h>
 #include <X11/keysym.h>
 #include <sys/shm.h>
+#include <string.h>
 
 struct swm_keys_t {
 	unsigned int mod;
@@ -201,6 +203,10 @@ nextwin (void) {
 	xcb_window_t *c,t = 0;
 	xcb_get_window_attributes_cookie_t ac;
 	xcb_get_window_attributes_reply_t *ar;
+	xcb_get_property_cookie_t pc;
+	xcb_get_property_reply_t *pr;
+	xcb_icccm_get_wm_class_reply_t wcr;
+	
 
 	r = xcb_query_tree_reply(conn, xcb_query_tree(conn, scr->root), 0);
 	if (!r || !r->children_len)
@@ -208,9 +214,14 @@ nextwin (void) {
 	c = xcb_query_tree_children(r);
 	for (unsigned int i=0; i < r->children_len; i++) {
 		ac = xcb_get_window_attributes(conn, c[i]);
-		ar = xcb_get_window_attributes_reply(conn, ac, NULL);
+		pc = xcb_icccm_get_wm_class(conn, c[i]);
 
-		if (ar && ar->map_state == XCB_MAP_STATE_VIEWABLE) {
+		ar = xcb_get_window_attributes_reply(conn, ac, NULL);
+		pr = xcb_get_property_reply(conn, pc, NULL);
+
+		xcb_icccm_get_wm_class_from_reply(&wcr, pr);
+
+		if (ar && ar->map_state == XCB_MAP_STATE_VIEWABLE && strcmp(wcr.class_name, "dzen") != 0) {
 			if (!(ar->override_redirect || c[i] == (*focuswin))) {
 				t = c[i];
 			}
