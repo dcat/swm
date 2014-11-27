@@ -1,5 +1,5 @@
-CFLAGS	+= -std=c99 -g -pedantic -Wall -Os
-LDFLAGS	+= -lxcb -lxcb-keysyms # -static
+CFLAGS	+= -std=c99 -g -pedantic -Wall -Os -I/usr/X11R6/include
+LDFLAGS	+= -lxcb -lxcb-keysyms -L/usr/X11R6/lib
 SRC	=  swm.c
 OBJ	=  ${SRC:.c=.o}
 RM	?= /bin/rm
