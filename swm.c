@@ -303,6 +303,9 @@ events_loop (void) {
 			xcb_configure_notify_event_t *e;
 			e = (xcb_configure_notify_event_t *)ev;
 
+			if (e->window != focuswin)
+				focus(e->window, INACTIVE);
+
 			focus(focuswin, ACTIVE);
 		} break;
 
