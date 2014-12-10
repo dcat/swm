@@ -95,7 +95,7 @@ focus (xcb_window_t win, int mode) {
 
 	w = (short)geom->width;
 	h = (short)geom->height;
-	b = (unsigned short)BORDERWIDTH;
+	b = (unsigned short)geom->border_width;
 	o = (unsigned short)OUTER;
 
 	xcb_rectangle_t inner[] = {
@@ -117,7 +117,8 @@ focus (xcb_window_t win, int mode) {
 
 	xcb_pixmap_t pmap = xcb_generate_id(conn);
 	xcb_create_pixmap(conn, scr->root_depth, pmap, win, geom->width
-			+ (BORDERWIDTH * 2), geom->height + (BORDERWIDTH * 2));
+			+ (geom->border_width * 2),
+			geom->height + (geom->border_width * 2));
 	xcb_gcontext_t gc = xcb_generate_id(conn);
 	xcb_create_gc(conn, gc, pmap, 0, NULL);
 
