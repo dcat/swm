@@ -20,7 +20,7 @@ swm: ${OBJ}
 clean:
 	${RM} swm ${OBJ}
 
-install:
+install: swm
 	install -m 755 swm ${DESTDIR}${PREFIX}/bin/swm
 
 uninstall:
