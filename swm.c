@@ -126,7 +126,7 @@ focus (xcb_window_t win, int mode) {
 	xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, values);
 	xcb_poly_fill_rectangle(conn, pmap, gc, 5, outer);
 
-	values[0] = (mode == ACTIVE) ? FOCUSCOL : UNFOCUSCOL;
+	values[0] = mode ? FOCUSCOL : UNFOCUSCOL;
 	xcb_change_gc(conn, gc, XCB_GC_FOREGROUND, values);
 	xcb_poly_fill_rectangle(conn, pmap, gc, 5, inner);
 
@@ -136,11 +136,11 @@ focus (xcb_window_t win, int mode) {
 	xcb_free_pixmap(conn, pmap);
 	xcb_free_gc(conn, gc);
 #else
-	values[0] = (mode == ACTIVE) ? FOCUSCOL : UNFOCUSCOL;
+	values[0] = mode ? FOCUSCOL : UNFOCUSCOL;
 	xcb_change_window_attributes(conn, win, XCB_CW_BORDER_PIXEL, values);
 #endif
 
-	if (mode == ACTIVE) {
+	if (mode) {
 		xcb_set_input_focus(conn, XCB_INPUT_FOCUS_POINTER_ROOT,
 				win, XCB_CURRENT_TIME);
 		if (win != focuswin) {
@@ -165,166 +165,13 @@ setup_win (xcb_window_t win) {
 }
 
 static void
-event_create(xcb_generic_event_t *ev)
-{
-	xcb_create_notify_event_t *e;
-	e = (xcb_create_notify_event_t *)ev;
-
-	if (!e->override_redirect) {
-		setup_win(e->window);
-		focus(e->window, ACTIVE);
-	}
-}
-
-static void
-event_destroy(xcb_generic_event_t *ev)
-{
-	xcb_destroy_notify_event_t *e;
-	e = (xcb_destroy_notify_event_t *)ev;
-
-	xcb_kill_client(conn, e->window);
-}
-
-static void
-event_enter(xcb_generic_event_t *ev)
-{
-	xcb_enter_notify_event_t *e;
-	e = (xcb_enter_notify_event_t *)ev;
-
-	focus(e->event, ACTIVE);
-}
-
-static void
-event_map(xcb_generic_event_t *ev)
-{
-	xcb_map_notify_event_t *e;
-	e = (xcb_map_notify_event_t *)ev;
-
-	if (!e->override_redirect) {
-		xcb_map_window(conn, e->window);
-		xcb_set_input_focus(conn,
-			XCB_INPUT_FOCUS_POINTER_ROOT,
-			e->window, XCB_CURRENT_TIME);
-	}	
-}
-
-static void
-event_button_press(xcb_generic_event_t *ev)
-{
-	uint32_t values[3];
-	xcb_get_geometry_reply_t *geom;
-	xcb_window_t win = 0;
-	
-	
-	xcb_button_press_event_t *e;
-	e = ( xcb_button_press_event_t *)ev;
-	win = e->child;
-
-	if (!win || win == scr->root)
-		return;
-
-	values[0] = XCB_STACK_MODE_ABOVE;
-	xcb_configure_window(conn, win,
-			XCB_CONFIG_WINDOW_STACK_MODE, values);
-	geom = xcb_get_geometry_reply(conn,
-			xcb_get_geometry(conn, win), NULL);
-	if (1 == e->detail) {
-		values[2] = 1;
-		xcb_warp_pointer(conn, XCB_NONE, win, 0, 0, 0,
-			0, geom->width/2, geom->height/2);
-	} else {
-		values[2] = 3;
-		xcb_warp_pointer(conn, XCB_NONE, win, 0, 0, 0,
-				0, geom->width, geom->height);
-	}
-	xcb_grab_pointer(conn, 0, scr->root,
-		XCB_EVENT_MASK_BUTTON_RELEASE
-		| XCB_EVENT_MASK_BUTTON_MOTION
-		| XCB_EVENT_MASK_POINTER_MOTION_HINT,
-		XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
-		scr->root, XCB_NONE, XCB_CURRENT_TIME);
-	
-	xcb_flush(conn);
-}
-
-static void
-event_motion(xcb_generic_event_t *ev)
-{
-	uint32_t values[3];
-	xcb_get_geometry_reply_t *geom;
-	xcb_window_t win = 0;
-	
-	
-	xcb_query_pointer_reply_t *pointer;
-	pointer = xcb_query_pointer_reply(conn,
-			xcb_query_pointer(conn, scr->root), 0);
-	if (values[2] == 1) {
-		geom = xcb_get_geometry_reply(conn,
-			xcb_get_geometry(conn, win), NULL);
-		if (!geom)
-			return;
-
-		values[0] = (pointer->root_x + geom->width / 2
-			> scr->width_in_pixels
-			- (BORDERWIDTH*2))
-			? scr->width_in_pixels - geom->width
-			- (BORDERWIDTH*2)
-			: pointer->root_x - geom->width / 2;
-		values[1] = (pointer->root_y + geom->height / 2
-			> scr->height_in_pixels
-			- (BORDERWIDTH*2))
-			? (scr->height_in_pixels - geom->height
-			- (BORDERWIDTH*2))
-			: pointer->root_y - geom->height / 2;
-
-		if (pointer->root_x < geom->width/2)
-			values[0] = 0;
-		if (pointer->root_y < geom->height/2)
-			values[1] = 0;
-
-		xcb_configure_window(conn, win,
-			XCB_CONFIG_WINDOW_X
-			| XCB_CONFIG_WINDOW_Y, values);
-		xcb_flush(conn);
-	} else if (values[2] == 3) {
-		geom = xcb_get_geometry_reply(conn,
-			xcb_get_geometry(conn, win), NULL);
-		values[0] = pointer->root_x - geom->x;
-		values[1] = pointer->root_y - geom->y;
-		xcb_configure_window(conn, win,
-			XCB_CONFIG_WINDOW_WIDTH
-			| XCB_CONFIG_WINDOW_HEIGHT, values);
-		xcb_flush(conn);
-	}
-}
-
-static void
-event_button_release(xcb_generic_event_t *ev)
-{
-	xcb_window_t win = 0;
-	
-	focus(win, ACTIVE);
-	xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
-}
-
-
-static void
-event_configure(xcb_generic_event_t *ev)
-{
-	xcb_configure_notify_event_t *e;
-	e = (xcb_configure_notify_event_t *)ev;
-
-	if (e->window != focuswin) {
-		focus(e->window, INACTIVE);
-	}
-	
-	focus(focuswin, ACTIVE);
-}
-
-
-static void
 events_loop (void) {
 	xcb_generic_event_t *ev;
+#ifdef ENABLE_MOUSE
+	uint32_t values[3];
+	xcb_get_geometry_reply_t *geom;
+	xcb_window_t win = 0;
+#endif
 
 	/* loop */
 	for (;;) {
@@ -335,23 +182,139 @@ events_loop (void) {
 
 		switch (CLEANMASK(ev->response_type)) {
 
-			case XCB_CREATE_NOTIFY: event_create(ev); 		break;
-			case XCB_DESTROY_NOTIFY: event_destroy(ev);	 	break;
-			case XCB_ENTER_NOTIFY: event_enter(ev);			break;
-			case XCB_MAP_NOTIFY: event_map(ev);				break;
-			case XCB_CONFIGURE_NOTIFY: event_configure(ev); break;
+		case XCB_CREATE_NOTIFY: {
+			xcb_create_notify_event_t *e;
+			e = (xcb_create_notify_event_t *)ev;
+
+			if (!e->override_redirect) {
+				setup_win(e->window);
+				focus(e->window, ACTIVE);
+			}
+		} break;
+
+		case XCB_DESTROY_NOTIFY: {
+			xcb_destroy_notify_event_t *e;
+			e = (xcb_destroy_notify_event_t *)ev;
+
+			xcb_kill_client(conn, e->window);
+		} break;
+
+		case XCB_ENTER_NOTIFY: {
+			xcb_enter_notify_event_t *e;
+			e = (xcb_enter_notify_event_t *)ev;
+
+			focus(e->event, ACTIVE);
+		} break;
+
+		case XCB_MAP_NOTIFY: {
+			xcb_map_notify_event_t *e;
+			e = (xcb_map_notify_event_t *)ev;
+
+			if (!e->override_redirect) {
+				xcb_map_window(conn, e->window);
+				xcb_set_input_focus(conn,
+					XCB_INPUT_FOCUS_POINTER_ROOT,
+					e->window, XCB_CURRENT_TIME);
+			}
+		} break;
+
 #ifdef ENABLE_MOUSE
-			case XCB_BUTTON_PRESS: event_button_press(ev); 	break;
-			case XCB_MOTION_NOTIFY: event_motion(ev); 		break;
-			case XCB_BUTTON_RELEASE: event_button_release(ev);	break;
+		case XCB_BUTTON_PRESS: {
+			xcb_button_press_event_t *e;
+			e = ( xcb_button_press_event_t *)ev;
+			win = e->child;
+
+			if (!win || win == scr->root)
+				break;
+
+			values[0] = XCB_STACK_MODE_ABOVE;
+			xcb_configure_window(conn, win,
+					XCB_CONFIG_WINDOW_STACK_MODE, values);
+			geom = xcb_get_geometry_reply(conn,
+					xcb_get_geometry(conn, win), NULL);
+			if (1 == e->detail) {
+				values[2] = 1;
+				xcb_warp_pointer(conn, XCB_NONE, win, 0, 0, 0,
+					0, geom->width/2, geom->height/2);
+			} else {
+				values[2] = 3;
+				xcb_warp_pointer(conn, XCB_NONE, win, 0, 0, 0,
+						0, geom->width, geom->height);
+			}
+			xcb_grab_pointer(conn, 0, scr->root,
+				XCB_EVENT_MASK_BUTTON_RELEASE
+				| XCB_EVENT_MASK_BUTTON_MOTION
+				| XCB_EVENT_MASK_POINTER_MOTION_HINT,
+				XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+				scr->root, XCB_NONE, XCB_CURRENT_TIME);
+			xcb_flush(conn);
+		} break;
+
+		case XCB_MOTION_NOTIFY: {
+			xcb_query_pointer_reply_t *pointer;
+			pointer = xcb_query_pointer_reply(conn,
+					xcb_query_pointer(conn, scr->root), 0);
+			if (values[2] == 1) {
+				geom = xcb_get_geometry_reply(conn,
+					xcb_get_geometry(conn, win), NULL);
+				if (!geom)
+					break;
+
+				values[0] = (pointer->root_x + geom->width / 2
+					> scr->width_in_pixels
+					- (BORDERWIDTH*2))
+					? scr->width_in_pixels - geom->width
+					- (BORDERWIDTH*2)
+					: pointer->root_x - geom->width / 2;
+				values[1] = (pointer->root_y + geom->height / 2
+					> scr->height_in_pixels
+					- (BORDERWIDTH*2))
+					? (scr->height_in_pixels - geom->height
+					- (BORDERWIDTH*2))
+					: pointer->root_y - geom->height / 2;
+
+				if (pointer->root_x < geom->width/2)
+					values[0] = 0;
+				if (pointer->root_y < geom->height/2)
+					values[1] = 0;
+
+				xcb_configure_window(conn, win,
+					XCB_CONFIG_WINDOW_X
+					| XCB_CONFIG_WINDOW_Y, values);
+				xcb_flush(conn);
+			} else if (values[2] == 3) {
+				geom = xcb_get_geometry_reply(conn,
+					xcb_get_geometry(conn, win), NULL);
+				values[0] = pointer->root_x - geom->x;
+				values[1] = pointer->root_y - geom->y;
+				xcb_configure_window(conn, win,
+					XCB_CONFIG_WINDOW_WIDTH
+					| XCB_CONFIG_WINDOW_HEIGHT, values);
+				xcb_flush(conn);
+			}
+		} break;
+
+		case XCB_BUTTON_RELEASE:
+			focus(win, ACTIVE);
+			xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
+			break;
 #endif
 
-		} /* end switch */
+		case XCB_CONFIGURE_NOTIFY: {
+			xcb_configure_notify_event_t *e;
+			e = (xcb_configure_notify_event_t *)ev;
+
+			if (e->window != focuswin)
+				focus(e->window, INACTIVE);
+
+			focus(focuswin, ACTIVE);
+		} break;
+
+		}
 
 		xcb_flush(conn);
 		free(ev);
-
-	} /* end loop */
+	}
 }
 
 int
