@@ -186,10 +186,8 @@ events_loop (void) {
 			xcb_create_notify_event_t *e;
 			e = (xcb_create_notify_event_t *)ev;
 
-			if (!e->override_redirect) {
+			if (!e->override_redirect)
 				setup_win(e->window);
-				focus(e->window, ACTIVE);
-			}
 		} break;
 
 		case XCB_DESTROY_NOTIFY: {
@@ -212,9 +210,7 @@ events_loop (void) {
 
 			if (!e->override_redirect) {
 				xcb_map_window(conn, e->window);
-				xcb_set_input_focus(conn,
-					XCB_INPUT_FOCUS_POINTER_ROOT,
-					e->window, XCB_CURRENT_TIME);
+				focus(e->window, ACTIVE);
 			}
 		} break;
 
@@ -299,16 +295,6 @@ events_loop (void) {
 			xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
 			break;
 #endif
-
-		case XCB_CONFIGURE_NOTIFY: {
-			xcb_configure_notify_event_t *e;
-			e = (xcb_configure_notify_event_t *)ev;
-
-			if (e->window != focuswin)
-				focus(e->window, INACTIVE);
-
-			focus(focuswin, ACTIVE);
-		} break;
 
 		}
 
