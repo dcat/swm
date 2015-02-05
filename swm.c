@@ -22,43 +22,45 @@
 #define CTRL		XCB_MOD_MASK_CONTROL
 #define SHIFT		XCB_MOD_MASK_SHIFT
 
-#include <signal.h>
+#include <xcb/xcb.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <xcb/xcb.h>
 #include <err.h>
 
-enum { INACTIVE, ACTIVE, };
+enum { INACTIVE, ACTIVE };
 
 /* global variables */
 static xcb_connection_t		*conn;
 static xcb_screen_t		*scr;
-static xcb_window_t		focuswin;
+static xcb_window_t		 focuswin;
 
 /* proto */
-static void cleanup		(void);
-static void swm_init		(void);
-static void setup_win		(xcb_window_t);
-static void focus		(xcb_window_t, int);
+static void subscribe(xcb_window_t);
+static void cleanup(void);
+static  int deploy(void);
+static void focus(xcb_window_t, int);
 
 #include "config.h"
 
 static void
-cleanup (void) {
+cleanup(void)
+{
 	/* graceful exit */
-	if (conn)
+	if (conn != NULL)
 		xcb_disconnect(conn);
 }
 
-static void
-swm_init (void) {
+static int
+deploy(void)
+{
+	/* init xcb and grab events */
 	uint32_t values[2];
+	int mask;
 
 	if (xcb_connection_has_error(conn = xcb_connect(NULL, NULL)))
-		errx(1, "error connecting to xcb");
+		return -1;
 
 	scr = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
-
 	focuswin = scr->root;
 
 #ifdef ENABLE_MOUSE
@@ -71,15 +73,18 @@ swm_init (void) {
 			XCB_GRAB_MODE_ASYNC, scr->root, XCB_NONE, 3, MOD);
 #endif
 
+	mask = XCB_CW_EVENT_MASK;
 	values[0] = XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY;
-	xcb_change_window_attributes_checked(conn, scr->root, XCB_CW_EVENT_MASK,
-			values);
+	xcb_change_window_attributes_checked(conn, scr->root, mask, values);
 
 	xcb_flush(conn);
+
+	return 0;
 }
 
 static void
-focus (xcb_window_t win, int mode) {
+focus(xcb_window_t win, int mode)
+{
 	uint32_t values[1];
 #ifdef DOUBLE_BORDER
 	short w, h, b, o;
@@ -90,7 +95,7 @@ focus (xcb_window_t win, int mode) {
 	xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn,
 			xcb_get_geometry(conn, win), NULL);
 
-	if (!geom)
+	if (geom == NULL)
 		return;
 
 	w = (short)geom->width;
@@ -140,7 +145,7 @@ focus (xcb_window_t win, int mode) {
 	xcb_change_window_attributes(conn, win, XCB_CW_BORDER_PIXEL, values);
 #endif
 
-	if (mode) {
+	if (mode == ACTIVE) {
 		xcb_set_input_focus(conn, XCB_INPUT_FOCUS_POINTER_ROOT,
 				win, XCB_CURRENT_TIME);
 		if (win != focuswin) {
@@ -151,7 +156,8 @@ focus (xcb_window_t win, int mode) {
 }
 
 static void
-setup_win (xcb_window_t win) {
+subscribe(xcb_window_t win)
+{
 	uint32_t values[2];
 
 	/* subscribe to events */
@@ -165,7 +171,8 @@ setup_win (xcb_window_t win) {
 }
 
 static void
-events_loop (void) {
+events_loop(void)
+{
 	xcb_generic_event_t *ev;
 #ifdef ENABLE_MOUSE
 	uint32_t values[3];
@@ -187,7 +194,7 @@ events_loop (void) {
 			e = (xcb_create_notify_event_t *)ev;
 
 			if (!e->override_redirect) {
-				setup_win(e->window);
+				subscribe(e->window);
 				focus(e->window, ACTIVE);
 			}
 		} break;
@@ -199,12 +206,13 @@ events_loop (void) {
 			xcb_kill_client(conn, e->window);
 		} break;
 
+#ifdef ENABLE_SLOPPY
 		case XCB_ENTER_NOTIFY: {
 			xcb_enter_notify_event_t *e;
 			e = (xcb_enter_notify_event_t *)ev;
-
 			focus(e->event, ACTIVE);
 		} break;
+#endif
 
 		case XCB_MAP_NOTIFY: {
 			xcb_map_notify_event_t *e;
@@ -212,9 +220,7 @@ events_loop (void) {
 
 			if (!e->override_redirect) {
 				xcb_map_window(conn, e->window);
-				xcb_set_input_focus(conn,
-					XCB_INPUT_FOCUS_POINTER_ROOT,
-					e->window, XCB_CURRENT_TIME);
+				focus(e->window, ACTIVE);
 			}
 		} break;
 
@@ -232,7 +238,7 @@ events_loop (void) {
 					XCB_CONFIG_WINDOW_STACK_MODE, values);
 			geom = xcb_get_geometry_reply(conn,
 					xcb_get_geometry(conn, win), NULL);
-			if (1 == e->detail) {
+			if (e->detail == 1) {
 				values[2] = 1;
 				xcb_warp_pointer(conn, XCB_NONE, win, 0, 0, 0,
 					0, geom->width/2, geom->height/2);
@@ -318,12 +324,16 @@ events_loop (void) {
 }
 
 int
-main (void) {
+main(void)
+{
 	/* graceful exit */
 	atexit(cleanup);
 
-	swm_init();
-	events_loop();
+	if (deploy() < 0)
+		errx(EXIT_FAILURE, "error connecting to X");
+
+	for (;;)
+		events_loop();
 
 	return EXIT_FAILURE;
 }
