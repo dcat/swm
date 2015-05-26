@@ -21,7 +21,7 @@ clean: ${OBJ} swm
 	${RM} ${OBJ} swm
 
 install: swm
-	install -m 755 swm ${DESTDIR}${PREFIX}/bin/swm
+	install -Dm 755 swm ${DESTDIR}${PREFIX}/bin/swm
 
 uninstall: ${DESTDIR}${PREFIX}/bin/swm
 	${RM} ${DESTDIR}${PREFIX}/bin/swm
