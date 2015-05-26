@@ -1,27 +1,30 @@
-CFLAGS += -std=c99 -g -pedantic -Wall -Os -I/usr/X11R6/include
-LDFLAGS	+= -lxcb -L/usr/X11R6/lib
-SRC	=  swm.c
-OBJ	=  ${SRC:.c=.o}
-RM	?= /bin/rm
-PREFIX	?= /usr
+BIN = swm
+SRC = swm.c
+OBJ ?= ${SRC:.c=.o}
+LDFLAGS += -lxcb
 
-all: swm
+include config.mk
+
+.POSIX:
+all: ${BIN}
 
 .c.o: ${SRC}
-	@echo CC $<
-	@${CC} -c ${CFLAGS} $<
+	@echo "${CC} -c $< -o $@ ${CFLAGS}"
+	@${CC} -c $< -o $@ ${CFLAGS}
 
 ${OBJ}: config.h
 
-swm: ${OBJ}
-	@echo LD $@
-	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+${BIN}: ${OBJ}
+	@echo "${LD} $^ -o $@ ${LDFLAGS}"
+	@${LD} -o $@ ${LDFLAGS} ${OBJ}
 
-clean: ${OBJ} swm
-	${RM} ${OBJ} swm
+install: ${BIN}
+	mkdir -p ${DESTDIR}${PREFIX}/bin
+	install ${BIN} ${DESTDIR}${PREFIX}/bin/${BIN}
+	chmod 755 ${DESTDIR}${PREFIX}/bin/${BIN}
 
-install: swm
-	install -m 755 swm ${DESTDIR}${PREFIX}/bin/swm
+uninstall: ${DESTDIR}${PREFIX}/bin/${BIN}
+	rm -f ${DESTDIR}${PREFIX}/bin/${BIN}
 
-uninstall: ${DESTDIR}${PREFIX}/bin/swm
-	${RM} ${DESTDIR}${PREFIX}/bin/swm
+clean:
+	rm -f ${BIN} ${OBJ}

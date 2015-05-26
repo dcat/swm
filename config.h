@@ -13,6 +13,6 @@
 /* resize and move by mouse? */
 #define ENABLE_MOUSE
 /* sloppy focus? */
-#define ENABlE_SLOPPY
+#define ENABLE_SLOPPY
 /* and double borders? */
 #define DOUBLE_BORDER
