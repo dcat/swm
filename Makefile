@@ -16,7 +16,7 @@ ${OBJ}: config.h
 
 ${BIN}: ${OBJ}
 	@echo "${LD} $^ -o $@ ${LDFLAGS}"
-	@${LD} -o $@ ${LDFLAGS} ${OBJ}
+	@${LD} -o $@ ${OBJ} ${LDFLAGS}
 
 install: ${BIN}
 	mkdir -p ${DESTDIR}${PREFIX}/bin
