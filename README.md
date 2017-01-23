@@ -1,5 +1,10 @@
 ###SWM
 
+#deprecated, see [wmutils](https://github.com/wmutils/core)
+
+```
+swm has been split into pieces and is now called wmutils.
+```
 
 ##Installing
 ```sh
