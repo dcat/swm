@@ -1,4 +1,4 @@
-###SWM
+### SWM
 
 #deprecated, see [wmutils](https://github.com/wmutils/core)
 
@@ -6,7 +6,7 @@
 swm has been split into pieces and is now called wmutils.
 ```
 
-##Installing
+## Installing
 ```sh
 $ git clone https://github.com/dcat/swm
 $ cd swm
@@ -14,18 +14,18 @@ $ make
 $ sudo make install
 ```
 
-##Guidelines
+## Guidelines
 
 - we follow OpenBSD's KNF [style(9)](http://www.openbsd.org/cgi-bin/man.cgi/OpenBSD-5.6/man9/style.9)
 - code correctness
 
-##TODO
+## TODO
 
 - tidy up
 - readability
 - debug
 
 
-##Screenshot
+## Screenshot
 
 ![swm](http://pub.iotek.org/p/260H6r1.png)
